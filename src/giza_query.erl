@@ -31,6 +31,7 @@
 -export([index/1, index/2, limit/1, limit/2]).
 -export([offset/1, offset/2, min_id/1, min_id/2]).
 -export([max_id/1, max_id/2]).
+-export([max_matches/1, max_matches/2]).
 -export([sort_extended/2, sort_relevance/1]).
 -export([filters/1, add_filter/3, add_filter/4, remove_filter/2,
          add_filter_range/4, add_filter_range/5]).
@@ -190,11 +191,26 @@ max_id(Query) ->
 
 %% @spec max_id(Query, MaxId) -> Result
 %%       Query = any()
-%%       MinId = integer()
+%%       MaxId = integer()
 %%       Result = any()
 %% @doc Set the maximum doc id limit
 max_id(Query, MaxId) ->
   set_query_field(max_id, Query, MaxId).
+
+%% @spec max_matches(Query) -> Result
+%%       Query = any()
+%%       Result = integer()
+%% @doc Get the maximum matches limit
+max_matches(Query) ->
+  Query#giza_query.max_matches.
+
+%% @spec max_matches(Query, MaxMatches) -> Result
+%%       Query = any()
+%%       MaxMatches = integer()
+%%       Result = any()
+%% @doc Set the maximum matches
+max_matches(Query, MaxMatches) ->
+  set_query_field(max_matches, Query, MaxMatches).
 
 %% @spec sort_extended(Query, Expression) -> Result
 %%       Query = any()
@@ -335,6 +351,8 @@ set_query_field(min_id, Query, MinId) ->
   Query#giza_query{min_id=MinId};
 set_query_field(max_id, Query, MaxId) ->
   Query#giza_query{max_id=MaxId};
+set_query_field(max_matches, Query, MaxMatches) ->
+  Query#giza_query{max_matches=MaxMatches};
 set_query_field(offset, Query, Offset) ->
   Query#giza_query{offset=Offset};
 set_query_field(index_weights, Query, IndexWeights) ->
@@ -362,7 +380,7 @@ query_to_commands(Query) ->
                  {32, Query#giza_query.group_fun},
                  {string, Query#giza_query.group_by},
                  %% Max matches
-                 {32, 1000},
+                 {32, Query#giza_query.max_matches},
                  {string, Query#giza_query.group_sort},
                  %% Cutoff
                  {32, 0},

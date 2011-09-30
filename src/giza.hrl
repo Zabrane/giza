@@ -53,6 +53,7 @@
          limit=25,
          min_id=0,
          max_id=0,
+         max_matches=1000,
          mode,
          sort,
          sort_by=?EMPTY_STRING,
