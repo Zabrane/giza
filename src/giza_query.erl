@@ -37,6 +37,7 @@
          add_filter_range/4, add_filter_range/5]).
 -export([index_weights/1, index_weights/2]).
 -export([field_weights/1, field_weights/2]).
+-export([params/2]).
 -export([to_bytes/1]).
 
 %% @spec new() -> Result
@@ -319,6 +320,16 @@ field_weights(Query, FieldWeights) ->
 %% @doc Get field weights for query.
 field_weights(Query) ->
     Query#giza_query.field_weights.
+
+%% @spec params(Query, Parameters) -> Result
+%%       Query = any()
+%%       Parameters = list(tuple())
+%%       Result = list(tuple())
+%% @doc Set multiple params at once.
+params(_Query, []) -> ok;
+params(Query, [{Parameter, Value} | Tail]) when is_atom(Parameter) ->
+    params(Query, Tail),
+    set_query_field(Parameter, Query, Value).
 
 to_bytes(Query) ->
   Commands = query_to_commands(Query),
