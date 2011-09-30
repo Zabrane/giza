@@ -45,7 +45,7 @@
 
 -record(giza_query,
         {host="localhost",
-         port=3312,
+         port=9312,
          command=?SPHINX_COMMAND_SEARCH,
          command_version=?SPHINX_COMMAND_SEARCH_VER,
          index=?EMPTY_STRING,
@@ -67,7 +67,7 @@
 
 -record(giza_update,
         {host="localhost",
-         port=3312,
+         port=9312,
          index=?EMPTY_STRING,
          command=?SPHINX_COMMAND_UPDATE,
          command_version,
