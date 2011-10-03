@@ -35,8 +35,10 @@
 -export([sort_extended/2, sort_relevance/1]).
 -export([filters/1, add_filter/3, add_filter/4, remove_filter/2,
          add_filter_range/4, add_filter_range/5]).
+-export([geo/1, geo/3]).
 -export([index_weights/1, index_weights/2]).
 -export([field_weights/1, field_weights/2]).
+-export([group_by/2, group_by/3, group_by/4]).
 -export([params/2]).
 -export([to_bytes/1]).
 
@@ -293,6 +295,22 @@ remove_filter(Query, Name) when is_list(Name) ->
 remove_filter(#giza_query{filters=Filters}=Query, Name) when is_binary(Name) ->
   Query#giza_query{filters=proplists:delete(Name, Filters)}.
 
+%% @spec geo(Query) -> Result
+%%       Query = any()
+%%       Lat = tuple()
+%%       Long = tuple()
+%%       Result = list(tuple())
+%% @doc Use index weights for query
+geo(Query, Lat, Long) ->
+    set_query_field(geo, Query, {deg, Lat, Long}).
+
+%% @spec index_weights(Query) -> Result
+%%       Query = any()
+%%       Result = list(tuple())
+%% @doc Get index weights for query.
+geo(Query) ->
+    Query#giza_query.geo.
+
 %% @spec index_weights(Query) -> Result
 %%       Query = any()
 %%       Result = list(tuple())
@@ -320,6 +338,13 @@ field_weights(Query, FieldWeights) ->
 %% @doc Get field weights for query.
 field_weights(Query) ->
     Query#giza_query.field_weights.
+
+group_by(Query, GroupAttr, GroupFun, GroupSort) ->
+    set_query_field(group_by, Query, {GroupAttr, GroupFun, GroupSort}).
+group_by(Query, GroupAttr, GroupFun) ->
+    set_query_field(group_by, Query, {GroupAttr, GroupFun, ?SPHINX_GROUP_SORT_DESC}).
+group_by(Query, GroupAttr) ->
+    set_query_field(group_by, Query, {GroupAttr, ?SPHINX_GROUPBY_ATTR, ?SPHINX_GROUP_SORT_DESC}).
 
 %% @spec params(Query, Parameters) -> Result
 %%       Query = any()
@@ -366,10 +391,16 @@ set_query_field(max_matches, Query, MaxMatches) ->
   Query#giza_query{max_matches=MaxMatches};
 set_query_field(offset, Query, Offset) ->
   Query#giza_query{offset=Offset};
+set_query_field(geo, Query, {deg, {AttrLat, Lat}, {AttrLong, Long}}) when is_list(AttrLat), is_float(Lat), is_list(AttrLong), is_float(Long) ->
+  Query#giza_query{geo=[{AttrLat, deg2rad(Lat)}, {AttrLong, deg2rad(Long)}]};
+set_query_field(geo, Query, {rad, {AttrLat, Lat}, {AttrLong, Long}}) when is_list(AttrLat), is_float(Lat), is_list(AttrLong), is_float(Long) ->
+  Query#giza_query{geo=[{AttrLat, Lat}, {AttrLong, Long}]};
 set_query_field(index_weights, Query, IndexWeights) ->
   Query#giza_query{index_weights=IndexWeights};
 set_query_field(field_weights, Query, FieldWeights) ->
-  Query#giza_query{field_weights=FieldWeights}.
+  Query#giza_query{field_weights=FieldWeights};
+set_query_field(group_by, Query, {GroupAttr, GroupFun, GroupSort}) ->
+  Query#giza_query{group_by=GroupAttr,group_fun=GroupFun,group_sort=GroupSort}.
 
 query_to_commands(Query) ->
   lists:flatten([{32, 1}, %% Number of queries
@@ -402,7 +433,7 @@ query_to_commands(Query) ->
                  %% Group distinct
                  {32, 0},
                  %% Disable geo searching
-                 {32, 0},
+                 process_geo(Query),
                  %% Index weights
                  process_index_weights(Query),
                  %% Max query time -- essentially unlimited
@@ -457,3 +488,17 @@ process_weights(Weights) ->
     [],
     Weights),
   [{32, length(Weights)} | EncodedPairs].
+
+process_geo(#giza_query{geo=[{AttrLat, Lat}, {AttrLong, Long}]}) ->
+    [{32, 1},
+    {string, AttrLat},
+    {string, AttrLong},
+    {float, Lat},
+    {float, Long}]
+.
+%%;
+
+%%process_geo(_) ->
+%%   {32, 0}.
+
+deg2rad(Deg) -> Deg * math:pi()/180.

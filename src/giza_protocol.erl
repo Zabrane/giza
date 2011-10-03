@@ -70,6 +70,13 @@ convert_number(Value, 32) ->
 convert_number(Value, 64) ->
   <<Value:64>>.
 
+%% @spec convert_float(Value) -> Result
+%%       Value = float()
+%%       Result = binary()
+%% @doc Convert number to binary
+convert_float(Value) ->
+  <<Value:32/float>>.
+
 %% @spec convert_string(String) -> Result
 %%       String = binary()
 %%       Result = list(binary())
@@ -187,6 +194,9 @@ commands_to_bytes([], FinalSize, Accum) ->
   {lists:reverse(Accum), FinalSize};
 commands_to_bytes([{Size, Value}|T], CurrentSize, Accum) when is_number(Size) ->
   Bytes = convert_number(Value, Size),
+  commands_to_bytes(T, CurrentSize + size(Bytes), [Bytes|Accum]);
+commands_to_bytes([{float, Value}|T], CurrentSize, Accum) when is_float(Value) ->
+  Bytes = convert_float(Value),
   commands_to_bytes(T, CurrentSize + size(Bytes), [Bytes|Accum]);
 commands_to_bytes([{string, String}|T], CurrentSize, Accum) when is_list(String) ->
   commands_to_bytes([{string, list_to_binary(String)}|T], CurrentSize, Accum);

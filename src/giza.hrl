@@ -62,6 +62,7 @@
          group_sort,
          query_string=?EMPTY_STRING,
          filters=[],
+         geo=0,
          index_weights=[],
          field_weights=[],
          ranker}).
